@@ -29,39 +29,45 @@ func genPrimesWithSlice(count int, export func(int)) {
 }
 
 func genPrimesWithGoroutines(count int, export func(int)) {
-	primes := make(chan int)
-	stopGen := make(chan bool)
+	stop := make(chan bool)
+	defer func() { close(stop) }()
 
-	go genInts(2, primes, stopGen)
-	defer func() { stopGen <- true }()
+	primes := make(chan int)
+
+	go genInts(2, primes, stop)
 
 	for i := 0; i < count; i++ {
 		p := <-primes
 		export(p)
 
 		newPrimes := make(chan int)
-		go filterMultiples(p, primes, newPrimes)
+		go filterMultiples(p, primes, newPrimes, stop)
 		primes = newPrimes
 	}
 }
 
 func genInts(start int, out chan<- int, stop <-chan bool) {
+	defer func() { close(out) }()
+
 	for n := start; ; n++ {
 		select {
 		case <-stop:
-			close(out)
 			return
 		case out <- n:
 		}
 	}
 }
 
-func filterMultiples(div int, in <-chan int, out chan<- int) {
+func filterMultiples(div int, in <-chan int, out chan<- int, stop <-chan bool) {
+	defer func() { close(out) }()
+
 	for n := range in {
 		if n%div != 0 {
-			out <- n
-		} else {
+			select {
+			case <-stop:
+				return
+			case out <- n:
+			}
 		}
 	}
-	close(out)
 }
