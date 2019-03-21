@@ -42,9 +42,9 @@ func TestGenPrimes(t *testing.T) {
 	}
 }
 
-func BenchmarkGenDigits(b *testing.B) {
+func BenchmarkGenPrimes(b *testing.B) {
 	for _, genPrimes := range funcs {
-		for count := 1; count <= 1; count *= 2 {
+		for count := 1; count <= 1024; count *= 2 {
 			b.Run(fmt.Sprintf("%s/%d", genPrimes.name, count), func(b *testing.B) {
 				for i := 0; i < b.N; i++ {
 					genPrimes.f(count, func(p int) {})
