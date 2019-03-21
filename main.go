@@ -51,10 +51,8 @@ func genInts(start int, out chan<- int, stop <-chan bool) {
 		case <-stop:
 			close(out)
 			return
-		default:
+		case out <- n:
 		}
-
-		out <- n
 	}
 }
 
