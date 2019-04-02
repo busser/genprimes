@@ -93,6 +93,10 @@ func postponedSieve(out chan<- int, stop <-chan bool) {
 	out <- 3
 	out <- 5
 	out <- 7
+	// foundPrime(2, out, stop)
+	// foundPrime(3, out, stop)
+	// foundPrime(5, out, stop)
+	// foundPrime(7, out, stop)
 
 	sieve := newDict()
 
@@ -109,11 +113,8 @@ func postponedSieve(out chan<- int, stop <-chan bool) {
 		if sieve.contains(candidate) { // candidate is composite
 			step = sieve.pop(candidate)
 		} else if candidate < primeSquared { // candidate is prime
-			select {
-			case <-stop:
-				return
-			case out <- candidate:
-			}
+			out <- candidate
+			// foundPrime(candidate, out, stop)
 			continue
 		} else { // candidate == primeSquared
 			step = 2 * prime
@@ -125,6 +126,14 @@ func postponedSieve(out chan<- int, stop <-chan bool) {
 			multiple += step
 		}
 		sieve.push(multiple, step)
+	}
+}
+
+func foundPrime(prime int, out chan<- int, stop <-chan bool) {
+	select {
+	case <-stop:
+		return
+	case out <- prime:
 	}
 }
 
