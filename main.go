@@ -85,6 +85,9 @@ func genPrimesWithPostponedSieve(count int, export func(int)) {
 	}
 }
 
+// solution based on:
+// https://stackoverflow.com/a/12563800
+// https://stackoverflow.com/a/10733621
 func postponedSieve(out chan<- int, stop <-chan bool) {
 	out <- 2
 	out <- 3
