@@ -12,6 +12,7 @@ var funcs = []struct {
 }{
 	{"slice", genPrimesWithSlice},
 	{"goroutines", genPrimesWithGoroutines},
+	{"postponedSieve", genPrimesWithPostponedSieve},
 }
 
 func TestGenPrimes(t *testing.T) {

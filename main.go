@@ -30,7 +30,7 @@ func genPrimesWithSlice(count int, export func(int)) {
 
 func genPrimesWithGoroutines(count int, export func(int)) {
 	stop := make(chan bool)
-	defer func() { close(stop) }()
+	defer close(stop)
 
 	primes := make(chan int)
 
@@ -70,4 +70,82 @@ func filterMultiples(div int, in <-chan int, out chan<- int, stop <-chan bool) {
 			}
 		}
 	}
+}
+
+func genPrimesWithPostponedSieve(count int, export func(int)) {
+	primes := make(chan int)
+	stop := make(chan bool)
+	defer close(stop)
+
+	go postponedSieve(primes, stop)
+
+	for i := 0; i < count; i++ {
+		prime := <-primes
+		export(prime)
+	}
+}
+
+func postponedSieve(out chan<- int, stop <-chan bool) {
+	out <- 2
+	out <- 3
+	out <- 5
+	out <- 7
+
+	sieve := newDict()
+
+	primes := make(chan int)
+	go postponedSieve(primes, stop)
+
+	<-primes
+	prime := <-primes // prime == 3
+	primeSquared := prime * prime
+
+	step := 0
+
+	for candidate := 9; ; candidate += 2 {
+		if sieve.contains(candidate) { // candidate is composite
+			step = sieve.pop(candidate)
+		} else if candidate < primeSquared { // candidate is prime
+			select {
+			case <-stop:
+				return
+			case out <- candidate:
+			}
+			continue
+		} else { // candidate == primeSquared
+			step = 2 * prime
+			prime = <-primes
+			primeSquared = prime * prime
+		}
+		multiple := candidate + step
+		for sieve.contains(multiple) {
+			multiple += step
+		}
+		sieve.push(multiple, step)
+	}
+}
+
+type dict struct {
+	m map[int]int
+}
+
+func newDict() *dict {
+	return &dict{
+		map[int]int{},
+	}
+}
+
+func (d *dict) contains(key int) bool {
+	_, ok := d.m[key]
+	return ok
+}
+
+func (d *dict) pop(key int) int {
+	value := d.m[key]
+	delete(d.m, key)
+	return value
+}
+
+func (d *dict) push(key, value int) {
+	d.m[key] = value
 }
