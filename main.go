@@ -89,51 +89,63 @@ func genPrimesWithPostponedSieve(count int, export func(int)) {
 // https://stackoverflow.com/a/12563800
 // https://stackoverflow.com/a/10733621
 func postponedSieve(out chan<- int, stop <-chan bool) {
-	out <- 2
-	out <- 3
-	out <- 5
-	out <- 7
-	// foundPrime(2, out, stop)
-	// foundPrime(3, out, stop)
-	// foundPrime(5, out, stop)
-	// foundPrime(7, out, stop)
+	defer close(out)
 
-	sieve := newDict()
+	for _, prime := range []int{2, 3, 5, 7} {
+		select {
+		case <-stop:
+			return
+		case out <- prime:
+		}
+	}
 
 	primes := make(chan int)
 	go postponedSieve(primes, stop)
 
-	<-primes
-	prime := <-primes // prime == 3
+	select {
+	case <-stop:
+		return
+	case <-primes:
+	}
+
+	var prime int
+	select {
+	case <-stop:
+		return
+	case prime = <-primes: // prime == 3
+	}
+
 	primeSquared := prime * prime
 
-	step := 0
+	sieve := newDict()
+	var step int
 
 	for candidate := 9; ; candidate += 2 {
 		if sieve.contains(candidate) { // candidate is composite
 			step = sieve.pop(candidate)
 		} else if candidate < primeSquared { // candidate is prime
-			out <- candidate
-			// foundPrime(candidate, out, stop)
+			select {
+			case <-stop:
+				return
+			case out <- candidate:
+			}
 			continue
 		} else { // candidate == primeSquared
 			step = 2 * prime
-			prime = <-primes
+			select {
+			case <-stop:
+				return
+			case prime = <-primes:
+			}
 			primeSquared = prime * prime
 		}
+
 		multiple := candidate + step
 		for sieve.contains(multiple) {
 			multiple += step
 		}
-		sieve.push(multiple, step)
-	}
-}
 
-func foundPrime(prime int, out chan<- int, stop <-chan bool) {
-	select {
-	case <-stop:
-		return
-	case out <- prime:
+		sieve.push(multiple, step)
 	}
 }
 
