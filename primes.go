@@ -1,20 +1,18 @@
-package main
+package primes
 
-import (
-	"fmt"
-)
-
-func main() {
-	genPrimesWithGoroutines(10, func(p int) { fmt.Println(p) })
-}
-
-func genPrimesWithSlice(count int, export func(int)) {
+// WithSlice generates `count` primes and calls `export` on each of them in
+// increasing order.
+// This is a naive approach to generating primes.
+func WithSlice(count int, export func(int)) {
 	primes := []int{}
 
 	for n := 2; len(primes) < count; n++ {
 		isPrime := true
 
 		for _, p := range primes {
+			if p*p > n {
+				break
+			}
 			if n%p == 0 {
 				isPrime = false
 				break
@@ -28,7 +26,12 @@ func genPrimesWithSlice(count int, export func(int)) {
 	}
 }
 
-func genPrimesWithGoroutines(count int, export func(int)) {
+// WithGoroutines generates `count` primes and calls `export` on each of them
+// in increasing order.
+//
+// This is a very inefficient approach to generating primes that makes use of
+// Go's concurrency primitives.
+func WithGoroutines(count int, export func(int)) {
 	stop := make(chan bool)
 	defer close(stop)
 
@@ -72,7 +75,11 @@ func filterMultiples(div int, in <-chan int, out chan<- int, stop <-chan bool) {
 	}
 }
 
-func genPrimesWithPostponedSieve(count int, export func(int)) {
+// WithPostponedSieve generates `count` primes and calls `export` on each of
+// them in increasing order.
+//
+// This approach makes full use of all CPU cores.
+func WithPostponedSieve(count int, export func(int)) {
 	primes := make(chan int)
 	stop := make(chan bool)
 	defer close(stop)
